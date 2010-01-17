@@ -1,0 +1,9 @@
+/virtualenv
+*.pyc
+*.db
+*.old
+*.bak
+/doc/_build
+.DS_Store
+*.swp
+/src/langacore.kit.i18n.egg-info
