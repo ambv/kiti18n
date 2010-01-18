@@ -3,6 +3,7 @@
 import sys
 import os
 import functools
+import re
 
 import polib
 
@@ -15,7 +16,7 @@ class POAnalyser(object):
         self.ignore_duplicates = config.ignore_duplicates
         self.ignore_occurrences = config.ignore_occurrences
         self.ignore_fuzzy = config.ignore_fuzzy
-
+        self.compare = config.compare
 
     def log(self, *args, **kwargs):
         newline = '\n'
@@ -33,13 +34,13 @@ class POAnalyser(object):
             self.log(*args, **kwargs)
 
 
-    def analyse_pofile(self, path):
-        self.logv('Analysing ', path, '... ', newline='')
-        log = functools.partial(self.logv, 'In ', path, ': ')
+    def build_path(self, *args):
+        return re.sub(r'/+', '/', os.sep.join(args))
+
+
+    def count_problems(self, po, log):
         entry_count = 0
         problem_count = 0
-        po = polib.pofile(path)
-
         for entry in po:
             entry_count += 1
             if not entry.msgstr:
@@ -77,6 +78,44 @@ class POAnalyser(object):
             elif not entry.occurrences and not self.ignore_occurrences:
                 problem_count += 1
                 log('no occurences marked for ', entry.msgid)
+        return entry_count, problem_count
+
+
+    def analyse_pofile(self, base_dir, file_path, compare_with):
+        path = self.build_path(base_dir, file_path)
+        if compare_with:
+            if os.path.isdir(compare_with):
+                compare_path = self.build_path(compare_with, file_path)
+            else:
+                compare_path = compare_with
+
+        if not (compare_with and os.path.isfile(compare_path)):
+            compare_path = None
+
+        self.logv('Analysing ', path, '... ', newline='')
+        try:
+            po = polib.pofile(path)
+        except IOError, e:
+            self.log('In ', path, ': ', e.strerror)
+            return 0, 1
+
+        entry_count, problem_count = self.count_problems(po,
+                                                         functools.partial(self.logv,
+                                                                           'In ',
+                                                                           path,
+                                                                           ': '))
+        po_quality = ((1 - 1.0 * problem_count / entry_count) * 100)
+
+        try:
+            compare_po = polib.pofile(compare_path)
+            entry_count2, problem_count2 = self.count_problems(compare_po,
+                                                               functools.partial(self.logv,
+                                                                                 'In ',
+                                                                                 compare_path,
+                                                                                 ': '))
+            po_quality2 = ((1 - 1.0 * problem_count2 / entry_count2) * 100)
+        except:
+            compare_po = None
 
         self.logv('done.')
 
@@ -84,44 +123,72 @@ class POAnalyser(object):
             if problem_count == entry_count:
                 self.log('EMPTY file; ', newline='')
             else:
-                self.log('%.2f%% complete; ' % ((1 - 1.0 * problem_count / entry_count) * 100), newline='')
-            self.log(problem_count, ' problems in ', path)
+                self.log('%.2f%% complete; ' % po_quality, newline='')
+            self.log(problem_count, ' problems in ', path, newline='')
+
+        if self.compare and compare_po:
+            entry_diff = entry_count2 - entry_count
+            problem_diff = problem_count2 - problem_count
+            quality_diff = po_quality2 - po_quality
+            if entry_diff == 0 and problem_diff == 0:
+                self.log(' ; ', compare_path, ' is the same')
+            elif quality_diff < 0.01:
+                self.log(' ; ', compare_path, ' has the same level of quality')
+            else:
+                self.log(' ; ', compare_path, ' is ', '%.2f%% better' % quality_diff)
+        else:
+            self.log()
 
         return entry_count, problem_count
 
-    def analyse_dir(self, path):
+
+    def analyse_dir(self, base_dir, file_path, compare_with):
+        path = self.build_path(base_dir, file_path)
+
         entries = 0
         problems = 0
         for entry in os.listdir(path):
-            entry_path = path + os.sep + entry
-            entry_is_dir = os.path.isdir(entry_path)
+            entry_path = self.build_path(file_path, entry)
+            complete_path = self.build_path(base_dir, file_path, entry)
+            entry_is_dir = os.path.isdir(complete_path)
             if self.recursive and entry_is_dir:
-                entry_count, problem_count = self.analyse_dir(entry_path)
+                entry_count, problem_count = self.analyse_dir(base_dir, entry_path, compare_with)
                 entries += entry_count
                 problems += problem_count
             elif entry.endswith('.po'):
-                entry_count, problem_count = self.analyse_pofile(entry_path)
+                entry_count, problem_count = self.analyse_pofile(base_dir, entry_path, compare_with)
                 entries += entry_count
                 problems += problem_count
         return entries, problems
 
 
     def analyse(self, sources=[]):
+        compare_with = None
+
+        if self.compare:
+            if len(sources) < 2:
+                print >>sys.stderr, "Wrong number of arguments. Try -h for help."
+                sys.exit(-1)
+            else:
+                compare_with = sources[-1]
+                sources = sources[:-1]
+
         entries = 0
         problems = 0
         for s in sources:
             if os.path.isdir(s):
-                entry_count, problem_count = self.analyse_dir(s)
+                entry_count, problem_count = self.analyse_dir(s, '', compare_with)
                 entries += entry_count
                 problems += problem_count
             else:
-                entry_count, problem_count = self.analyse_pofile(s)
+                entry_count, problem_count = self.analyse_pofile('', s, compare_with)
                 entries += entry_count
                 problems += problem_count
-        if problems > 0:
+        if problems > 0 and entries > 0:
             self.log('---')
             self.log('%.2f%% complete; ' % ((1 - 1.0 * problems / entries) * 100), newline='')
             self.log(problems, ' problems detected.')
+
 
 if __name__ == '__main__':
     import argparse
@@ -140,6 +207,10 @@ if __name__ == '__main__':
                         help='potool will not count strings with no marked occurrences as problems')
     parser.add_argument('-f', '--ignore-fuzzy', action='store_true',
                         help='potool will not count fuzzy and obsolete translations as problems')
+    parser.add_argument('-c', '--compare', action='store_true',
+                        help='potool will compare the given files or directories. When using -c, there should be '
+                        'at least 2 file_or_directory arguments passed. Every entry is compared with the last '
+                        'one specified.')
     values = parser.parse_args()
 
     POAnalyser(config=values).analyse(values.file_or_directory)
