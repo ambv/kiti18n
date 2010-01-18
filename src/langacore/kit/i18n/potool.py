@@ -35,6 +35,10 @@ class POAnalyser(object):
 
 
     def build_path(self, *args):
+        if len(args) > 1 and args[0] == '':
+            args = list(args)
+            args[0] = '/' if args[1][0:1] == '/' else '.'
+
         return re.sub(r'/+', '/', os.sep.join(args))
 
 
