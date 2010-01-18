@@ -21,6 +21,7 @@ setup (
         'setuptools',
         'polib',
         'Sphinx',
+        'argparse',
         ],
 
     classifiers = [
