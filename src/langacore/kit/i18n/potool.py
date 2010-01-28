@@ -17,6 +17,11 @@ class POAnalyser(object):
         self.ignore_occurrences = config.ignore_occurrences
         self.ignore_fuzzy = config.ignore_fuzzy
         self.compare = config.compare
+        self.merge = config.merge
+        self.merge_conflict = not config.overwrite_conflicts and not config.skip_conflicts
+        self.merge_overwrite = config.overwrite_conflicts
+        self.merge_skip = config.skip_conflicts
+        self.test_only = config.test_only
 
     def log(self, *args, **kwargs):
         newline = '\n'
@@ -40,6 +45,62 @@ class POAnalyser(object):
             args[0] = '/' if args[1][0:1] == '/' else '.'
 
         return re.sub(r'/+', '/', os.sep.join(args))
+
+
+    def collect_entries(self, path):
+        result = {}
+
+        try:
+            po = polib.pofile(path)
+        except IOError, e:
+            self.log('In ', path, ': ', e.strerror)
+            return result, None
+
+        for entry in po:
+            result[entry.msgid] = entry
+
+        return result, po
+
+
+    def merge_dicts(self, source, target):
+        """ Returns (target_dict, add_count, change_count, remove_count). """
+
+        source_keys = set(source.keys())
+        target_keys = set(target.keys())
+
+        # added
+        new = source_keys - target_keys
+        for key in new:
+            target[key] = source[key]
+
+        # removed
+        removed = target_keys - source_keys
+
+        # changed
+        common = target_keys.intersection(source_keys)
+
+        diff = set()
+        for key in common:
+            if target[key].msgstr != source[key].msgstr or target[key].msgstr_plural != source[key].msgstr_plural:
+                diff.add(key)
+
+        if len(diff) > 0:
+            if self.merge_conflict:
+                target = None
+            elif self.merge_overwrite:
+                for key in diff:
+                    te = target[key]
+                    se = source[key]
+                    te.msgstr = se.msgstr
+                    te.msgid_plural = se.msgid_plural
+                    te.msgstr_plural = se.msgstr_plural
+                    te.flags = se.flags
+            elif self.merge_skip:
+                pass # nothing has to be done
+            else:
+                self.log("We have a bug.")
+
+        return (target, len(new), len(diff), len(removed))
 
 
     def count_problems(self, po, log):
@@ -166,32 +227,104 @@ class POAnalyser(object):
         return entries, problems
 
 
-    def analyse(self, sources=[]):
-        compare_with = None
+    def merge_pofile(self, base_dir, file_path, merge_with):
+        path = self.build_path(base_dir, file_path)
+        if os.path.isdir(merge_with):
+            merge_path = self.build_path(merge_with, file_path)
+        else:
+            merge_path = merge_with
 
-        if self.compare:
+        if not (merge_with and os.path.isfile(merge_path)):
+            return (0, 0, 0) # or maybe an error?
+
+        # The Merge
+        self.logv('Merging ', path, '... ', newline='')
+        source, _ = self.collect_entries(path)
+        target, target_po = self.collect_entries(merge_path)
+        new_target, add_count, change_count, remove_count = self.merge_dicts(source, target)
+        self.logv('done.')
+
+        # The Summary
+        if new_target == None:
+            self.log('CONFLICT; ', newline='')
+        else:
+            target = new_target
+            while len(target_po) > 0:
+                del target_po[0]
+
+            for e in target.itervalues():
+                target_po.append(e)
+
+            if not self.test_only:
+                target_po.save(merge_path)
+
+        self.log(len(target), ' total items. ', add_count, ' new items, ', change_count, ' changed items, ', remove_count, ' removed items: ', file_path, ' -> ', merge_path)
+
+        return add_count, change_count, remove_count
+
+
+    def merge_dir(self, base_dir, file_path, merge_with):
+        path = self.build_path(base_dir, file_path)
+
+        added = 0
+        changed = 0
+        removed = 0
+        for entry in os.listdir(path):
+            entry_path = self.build_path(file_path, entry)
+            complete_path = self.build_path(base_dir, file_path, entry)
+            entry_is_dir = os.path.isdir(complete_path)
+            add_count, change_count, remove_count  = self.merge_dir(base_dir, entry_path, merge_with) \
+                                                     if self.recursive and entry_is_dir else \
+                                                     self.merge_pofile(base_dir, entry_path, merge_with) \
+                                                     if entry.endswith('.po') else \
+                                                     (0, 0, 0)
+            added += add_count
+            changed += change_count
+            removed += remove_count
+        return added, changed, removed
+
+
+    def start(self, sources=[]):
+        target = None
+
+        if self.merge and self.compare:
+            print >>sys.stderr, "Merge and compare cannot be run together. Use either -m or -c."
+            sys.exit(-1)
+        elif self.merge or self.compare:
             if len(sources) < 2:
                 print >>sys.stderr, "Wrong number of arguments. Try -h for help."
                 sys.exit(-1)
             else:
-                compare_with = sources[-1]
+                target = sources[-1]
                 sources = sources[:-1]
 
-        entries = 0
-        problems = 0
-        for s in sources:
-            if os.path.isdir(s):
-                entry_count, problem_count = self.analyse_dir(s, '', compare_with)
-                entries += entry_count
-                problems += problem_count
-            else:
-                entry_count, problem_count = self.analyse_pofile('', s, compare_with)
-                entries += entry_count
-                problems += problem_count
-        if problems > 0 and entries > 0:
+        if self.merge:
+            added = 0
+            changed = 0
+            removed = 0
+            for s in sources:
+                add_count, change_count, remove_count = self.merge_dir(s, '', merge_with=target) \
+                                                        if os.path.isdir(s) else \
+                                                        self.merge_pofile('', s, merge_with=target)
+                added += add_count
+                changed += change_count
+                removed += remove_count
             self.log('---')
-            self.log('%.2f%% complete; ' % ((1 - 1.0 * problems / entries) * 100), newline='')
-            self.log(problems, ' problems detected.')
+            #self.log('%.2f%% complete; ' % ((1 - 1.0 * problems / entries) * 100), newline='')
+            #self.log(problems, ' problems detected.')
+        else:
+            entries = 0
+            problems = 0
+            for s in sources:
+                entry_count, problem_count = self.analyse_dir(s, '', compare_with=target) \
+                                                if os.path.isdir(s) else \
+                                                self.analyse_pofile('', s, compare_with=target)
+                entries += entry_count
+                problems += problem_count
+            if problems > 0 and entries > 0:
+                self.log('---')
+                self.log('%.2f%% complete; ' % ((1 - 1.0 * problems / entries) * 100), newline='')
+                self.log(problems, ' problems detected.')
 
 
 if __name__ == '__main__':
@@ -215,6 +348,19 @@ if __name__ == '__main__':
                         help='potool will compare the given files or directories. When using -c, there should be '
                         'at least 2 file_or_directory arguments passed. Every entry is compared with the last '
                         'one specified.')
+    parser.add_argument('-m', '--merge', action='store_true',
+                        help='potool will merge the given files or directories. When using -m, there should be '
+                        'at least 2 file_or_directory arguments passed. Every entry is merged with the last '
+                        'one specified. Overrides .')
+    parser.add_argument('-S', '--skip-conflicts', action='store_true',
+                        help='when using --merge, potool will skip the entries that are both in source and target '
+                        'but differ in content.')
+    parser.add_argument('-X', '--overwrite-conflicts', action='store_true',
+                        help='when using --merge, potool will overwrite the entries in target that appear both in '
+                        'source and target but differ in content.')
+    parser.add_argument('-T', '--test-only', action='store_true',
+                        help='when using --merge, potool will not write changes to the target but only print the '
+                        'changes it would do.')
     values = parser.parse_args()
 
-    POAnalyser(config=values).analyse(values.file_or_directory)
+    POAnalyser(config=values).start(values.file_or_directory)
