@@ -19,4 +19,4 @@ def any(lang, input, force=False):
         except:
             pass
 
-    return result
+    return result.decode("utf-8")
