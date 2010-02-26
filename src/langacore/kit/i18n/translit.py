@@ -2,8 +2,11 @@ import subprocess
 
 
 def any(lang, input, force=False):
-    langList = ["el", "ru", "ja", "hi", "fa", "uk", "th", "sr", "ps",
-                "mk", "ko", "he", "bg", "hy", "ar"]
+    langList = set(["el", "ru", "ja", "hi", "fa", "uk", "th", "sr", "ps",
+                "mk", "ko", "he", "bg", "hy", "ar"])
+
+    if type(input) == unicode:
+        input = input.encode("utf-8")
 
     result = input
 
