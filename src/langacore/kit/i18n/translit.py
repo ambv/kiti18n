@@ -7,7 +7,7 @@ def any(lang, input, force=False):
 
     result = input
 
-    if force or lang in langList:
+    if force or lang.lower() in langList:
         try:
             uconv = subprocess.Popen("uconv -x Latin-%s" % lang, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
             uconv.stdin.write(input)
