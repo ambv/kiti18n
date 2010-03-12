@@ -51,7 +51,7 @@ l2c = {
     u'\u0106': u'\u0427',
     u'D': u'\u0414',
     u'E': u'\u042D',
-    u'\u0118': unichr(0x415 ) + u'\u041D', # EH
+    u'\u0118': u'\u0415' + u'\u041D', # EH
     u'\u0D06': u'\u0401', #german o umlaut na cyrylica e
     u'F': u'\u0424',
     u'G': u'\u0413',
@@ -207,13 +207,16 @@ cyrillic_updates = {
     u'lu': l2c[u'l'] + l2c[u'u'],
 }
 
-def any(lang, input):
+def any(lang, input, force=False, input_lang=''):
+    if not (force or lang in cyrillic_countries):
+        return input
+
     trans_dict = dict(l2c)
 
-    if lang in cyrillic_countries:
+    if input_lang in cyrillic_countries:
         trans_dict.update(cyrillic_updates)
     
-    if lang in c_convert_countries:
+    if input_lang in c_convert_countries:
         trans_dict.update({u'c': l2c[u'k'], u'C': l2c[u'K']})
     
     transformations = list(l2c.keys())

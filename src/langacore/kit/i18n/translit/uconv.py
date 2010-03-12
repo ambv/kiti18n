@@ -1,7 +1,7 @@
 import subprocess
 
 
-def any(lang, input, force=False):
+def any(lang, input, force=False, input_lang=''):
     lang_list = set(["el", "ru", "ja", "hi", "fa", "uk", "th", "sr", "ps",
                 "mk", "ko", "he", "bg", "hy", "ar"])
 
