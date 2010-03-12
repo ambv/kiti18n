@@ -4,6 +4,8 @@
 *.old
 *.bak
 /doc/_build
+/build
+/dist
 .DS_Store
 *.swp
 /src/langacore.kit.i18n.egg-info
