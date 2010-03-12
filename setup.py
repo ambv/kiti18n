@@ -5,8 +5,6 @@ from setuptools import setup, find_packages
 setup (
     name = 'langacore.kit.i18n',
     version = '0.1.0',
-    author = 'LangaCore, Lukasz Langa',
-    author_email = 'support@langacore.org, lukasz@langa.pl',
     description = "Various common i18n-related routines.",
     long_description = '',
     keywords = '',
