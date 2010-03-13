@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 
 setup (
     name = 'langacore.kit.i18n',
-    version = '0.1.1',
+    version = '0.1.2',
     author = 'LangaCore, Lukasz Langa, Krzysztof Borowczyk',
     author_email = 'support@langacore.org, lukasz@langa.pl, krzysztof@bordev.pl',
     description = "Various common i18n-related routines.",
