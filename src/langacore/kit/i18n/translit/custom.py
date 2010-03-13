@@ -207,10 +207,11 @@ cyrillic_updates = {
     u'lu': l2c[u'l'] + l2c[u'u'],
 }
 
-def any(lang, input, force=False, input_lang=''):
-    if not (force or lang in cyrillic_countries):
-        return input
 
+from langacore.kit.cache import memoize
+
+@memoize(update_interval=0)
+def get_transforms(input_lang=''):
     trans_dict = dict(l2c)
 
     if input_lang in cyrillic_countries:
@@ -219,15 +220,27 @@ def any(lang, input, force=False, input_lang=''):
     if input_lang in c_convert_countries:
         trans_dict.update({u'c': l2c[u'k'], u'C': l2c[u'K']})
     
-    transformations = list(l2c.keys())
-    transformations.sort(lambda x, y: len(y) - len(x) or cmp(x, y))
+    trans_order = list(l2c.keys())
+    trans_order.sort(lambda x, y: len(y) - len(x) or cmp(x, y))
 
+    return trans_dict, trans_order
+
+
+def any(lang, input, force=False, input_lang=''):
+    lang = '' if not lang else lang.lower()
+    input_lang = '' if not input_lang else input_lang.lower()
+
+    if not (force or lang in cyrillic_countries):
+        return input
+
+    trans_dict, trans_order = get_transforms(input_lang)
     result = input
 
-    for t in transformations:
+    for t in trans_order:
         result = result.replace(t, trans_dict[t])
 
     return result
+
 
 if __name__ == '__main__':
     import sys
