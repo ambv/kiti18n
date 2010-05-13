@@ -3,15 +3,15 @@
 
 l2c = {
     u'a': u'\u0430',
-    u'\u0E04': u'\u044D', # a umlaut -> 3
-    u'\u0105': u'\u043E'+u'\u043D', #oh
+    u'\u0E04': u'\u044D',
+    u'\u0105': u'\u043E'+u'\u043D',
     u'b': u'\u0431',
     u'c': u'\u0446',
-    u'\u0107': u'\u0447', # ć
+    u'\u0107': u'\u0447',
     u'd': u'\u0434',
-    u'e': u'\u0435',         #u'\u044D',
-    u'\u0119': u'\u0435'+ u'\u043D', #eh
-    u'\u0F06': u'\u0451', #german o umlaut na cyrylica e
+    u'e': u'\u0435',
+    u'\u0119': u'\u0435'+ u'\u043D',
+    u'\u0F06': u'\u0451',
     u'f': u'\u0444',
     u'g': u'\u0433',
     u'h': u'\u0445',
@@ -19,11 +19,11 @@ l2c = {
     u'i': u'\u0438',
     u'j': u'\u0439',
     u'k': u'\u043A',
-    u'l': u'\u043B',#+ u'\u044C',
+    u'l': u'\u043B',
     u'\u0142': u'\u043B',
     u'm': u'\u043C',
     u'n': u'\u043D',
-    u'\u0144': u'\u043D'+u'\u044C', # hb
+    u'\u0144': u'\u043D'+u'\u044C',
     u'o': u'\u043E',
     u'\u00F6': u'\u044E',
     u'\u00F3': u'\u043E',
@@ -34,25 +34,25 @@ l2c = {
     u's': u'\u0441',
     u'\u015b': u'\u0441',
     u't': u'\u0442',
-    u'u': u'\u0443', #u na y
-    u'\u0F0C': u'\u044E', # u niemieckie na ju russian
+    u'u': u'\u0443',
+    u'\u0F0C': u'\u044E',
     u'v': u'\u0432',
-    u'w': u'\u0432', # 432
+    u'w': u'\u0432',
     u'y': u'\u044B',
     u'z': u'\u0437',
     u'\u017A': u'\u0437',
     u'\u017C': u'\u0436',
     u'#': u'\u044A',
     u'A': u'\u0410',
-    u'\u0C04': u'\u042D', # a umlaut -> 3
-    u'\u0104': u'\u041E'+u'\u041D', # OH
+    u'\u0C04': u'\u042D',
+    u'\u0104': u'\u041E'+u'\u041D',
     u'B': u'\u0411',
     u'C': u'\u0426',
     u'\u0106': u'\u0427',
     u'D': u'\u0414',
     u'E': u'\u042D',
-    u'\u0118': u'\u0415' + u'\u041D', # EH
-    u'\u0D06': u'\u0401', #german o umlaut na cyrylica e
+    u'\u0118': u'\u0415' + u'\u041D',
+    u'\u0D06': u'\u0401',
     u'F': u'\u0424',
     u'G': u'\u0413',
     u'H': u'\u0425',
@@ -60,7 +60,7 @@ l2c = {
     u'I': u'\u0418',
     u'J': u'\u0419',
     u'K': u'\u041A',
-    u'L': u'\u041B', # + u'\u042C', bez miekkiego
+    u'L': u'\u041B',
     u'\u0141': u'\u041B',
     u'M': u'\u041C',
     u'N': u'\u041D',
@@ -75,17 +75,16 @@ l2c = {
     u'\u015A': u'\u0421',
     u'T': u'\u0422',
     u'U': u'\u0423',
-    u'\u0D0C': u'\u042E', # U niemieckie na ju russian
-    u'V': u'\u0412',       # new u'V' mapping
+    u'\u0D0C': u'\u042E',
+    u'V': u'\u0412',
     u'W': u'\u0412',
     u'Y': u'\u042B',
     u'Z': u'\u0417',
     u'\u0179': u'\u0417', 	#Ź
     u'\u017B': u'\u0416', 	#Ż
     u'\u0027': u'\u044C', 	#Ż
-    u"`": u'\u044C',    # u'mjadkij' instead of .that //what3v3r - until we'l translate /ru to /ru ;)
-    u"u'": '\u044Cu',    # 'mjadkiju' instead of .that //what3v3r - until we'l translate /ru to /ru ;)
-    #u'"': u'\u042C',    # u'mjadkij' instead of .that //what3v3r - until we'l translate /ru to /ru ;)
+    u"`": u'\u044C',
+    u"'": u'\u044C',
 }
 
 l2c.update({
@@ -210,7 +209,7 @@ cyrillic_updates = {
 
 from langacore.kit.cache import memoize
 
-@memoize(update_interval=0)
+@memoize(update_interval=0, fast_updates=True)
 def get_transforms(input_lang=''):
     trans_dict = dict(l2c)
 
@@ -223,7 +222,7 @@ def get_transforms(input_lang=''):
     trans_order = list(l2c.keys())
     trans_order.sort(lambda x, y: len(y) - len(x) or cmp(x, y))
 
-    return trans_dict, trans_order
+    return [(key, trans_dict[key]) for key in trans_order]
 
 
 def any(lang, input, force=False, input_lang=''):
@@ -233,15 +232,24 @@ def any(lang, input, force=False, input_lang=''):
     if not (force or lang in cyrillic_countries):
         return input
 
-    trans_dict, trans_order = get_transforms(input_lang)
+    trans = get_transforms(input_lang)
     result = input
-
-    for t in trans_order:
-        result = result.replace(t, trans_dict[t])
+    
+    for t_from, t_to in trans:
+        if t_from in result:
+            result = result.replace(t_from, t_to)
 
     return result
 
 
 if __name__ == '__main__':
     import sys
-    print any(sys.argv[2], sys.argv[1].decode('utf-8'))
+    import cProfile
+
+    def test():
+        text = sys.argv[1].decode('utf-8')
+        lang = sys.argv[2]
+        for i in xrange(500000):
+            a = any(lang, text)
+        print a
+    cProfile.run('test()')
