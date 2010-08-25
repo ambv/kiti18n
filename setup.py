@@ -1,10 +1,27 @@
 # -*- encoding: utf-8 -*-
+# Copyright (C) 2010 LangaCore
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, version 3 of the License.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+
+import os
+import sys
 from setuptools import setup, find_packages
+assert sys.version_info >= (2, 7), "Python 2.7+ required."
 
 setup (
     name = 'langacore.kit.i18n',
-    version = '0.1.4',
+    version = '0.1.5',
     author = 'LangaCore, Lukasz Langa, Krzysztof Borowczyk',
     author_email = 'support@langacore.org, lukasz@langa.pl, krzysztof@bordev.pl',
     description = "Various common i18n-related routines.",
@@ -22,7 +39,7 @@ setup (
         'polib',
         'Sphinx',
         'argparse',
-        'langacore.kit.common==0.1.6',
+        'langacore.kit.common',
         ],
 
     classifiers = [
