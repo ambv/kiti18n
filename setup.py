@@ -17,11 +17,12 @@
 import os
 import sys
 from setuptools import setup, find_packages
+
 assert sys.version_info >= (2, 7), "Python 2.7+ required."
 
 setup (
     name = 'langacore.kit.i18n',
-    version = '0.1.5',
+    version = '0.1.6',
     author = 'LangaCore, Lukasz Langa, Krzysztof Borowczyk',
     author_email = 'support@langacore.org, lukasz@langa.pl, krzysztof@bordev.pl',
     description = "Various common i18n-related routines.",
@@ -38,7 +39,6 @@ setup (
         'setuptools',
         'polib',
         'Sphinx',
-        'argparse',
         'langacore.kit.common',
         ],
 
@@ -48,6 +48,7 @@ setup (
         'License :: OSI Approved :: GNU General Public License (GPL)',
         'Natural Language :: English',
         'Programming Language :: Python',
+        'Programming Language :: Python :: 2.7',
         'Topic :: Software Development :: Libraries :: Python Modules',
         ]
     )

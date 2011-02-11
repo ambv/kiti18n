@@ -1,4 +1,29 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
+# Copyright (C) 2011 Łukasz Langa
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, version 3 of the License.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+"""potool
+   ------
+
+   .po file manipulation tool. Run potool -h for help."""
+
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
 
 import sys
 import os
@@ -18,8 +43,10 @@ class POAnalyser(object):
         self.ignore_fuzzy = config.ignore_fuzzy
         self.compare = config.compare
         self.merge = config.merge
-        self.merge_conflict = not config.overwrite_conflicts and not config.skip_conflicts
+        self.merge_conflict = not (config.overwrite_conflicts or
+                                   config.skip_conflicts)
         self.merge_overwrite = config.overwrite_conflicts
+        self.merge_remove = config.remove_missing
         self.merge_skip = config.skip_conflicts
         self.test_only = config.test_only
 
@@ -44,7 +71,7 @@ class POAnalyser(object):
             args = list(args)
             args[0] = '/' if args[1][0:1] == '/' else '.'
 
-        return re.sub(r'/+', '/', os.sep.join(args))
+        return re.sub(r'/\./', '/', re.sub(r'/+', '/', os.sep.join(args)))
 
 
     def collect_entries(self, path):
@@ -60,47 +87,6 @@ class POAnalyser(object):
             result[entry.msgid] = entry
 
         return result, po
-
-
-    def merge_dicts(self, source, target):
-        """ Returns (target_dict, add_count, change_count, remove_count). """
-
-        source_keys = set(source.keys())
-        target_keys = set(target.keys())
-
-        # added
-        new = source_keys - target_keys
-        for key in new:
-            target[key] = source[key]
-
-        # removed
-        removed = target_keys - source_keys
-
-        # changed
-        common = target_keys.intersection(source_keys)
-
-        diff = set()
-        for key in common:
-            if target[key].msgstr != source[key].msgstr or target[key].msgstr_plural != source[key].msgstr_plural:
-                diff.add(key)
-
-        if len(diff) > 0:
-            if self.merge_conflict:
-                target = None
-            elif self.merge_overwrite:
-                for key in diff:
-                    te = target[key]
-                    se = source[key]
-                    te.msgstr = se.msgstr
-                    te.msgid_plural = se.msgid_plural
-                    te.msgstr_plural = se.msgstr_plural
-                    te.flags = se.flags
-            elif self.merge_skip:
-                pass # nothing has to be done
-            else:
-                self.log("We have a bug.")
-
-        return (target, len(new), len(diff), len(removed))
 
 
     def count_problems(self, po, log):
@@ -119,18 +105,22 @@ class POAnalyser(object):
             if entry.msgid_plural:
                 if not entry.msgstr_plural:
                     problem_count += 1
-                    log('empty msgstr_plural for ', entry.msgid, '(plural: ', entry.msgid_plural, ')')
+                    log('empty msgstr_plural for ', entry.msgid, '(plural: ',
+                        entry.msgid_plural, ')')
                 elif entry.msgid_plural == entry.msgstr_plural:
                     if not self.ignore_duplicates:
                         problem_count += 1
-                        log('msgstr_plural == msgid_plural for ', entry.msgid, '(plural: ', entry.msgid_plural, ')')
+                        log('msgstr_plural == msgid_plural for ', entry.msgid,
+                            '(plural: ', entry.msgid_plural, ')')
                 elif entry.msgid == entry.msgstr_plural:
                     problem_count += 1
-                    log('msgstr_plural == msgid for ', entry.msgid, '(plural: ', entry.msgid_plural, ')')
+                    log('msgstr_plural == msgid for ', entry.msgid,
+                        '(plural: ', entry.msgid_plural, ')')
                 elif entry.msgstr == entry.msgstr_plural:
                     if not self.ignore_duplicates:
                         problem_count += 1
-                        log('msgstr_plural == msgstr for ', entry.msgid, '(plural: ', entry.msgid_plural, ')')
+                        log('msgstr_plural == msgstr for ', entry.msgid,
+                            '(plural: ', entry.msgid_plural, ')')
 
             if 'fuzzy' in entry.flags and not self.ignore_fuzzy:
                     problem_count += 1
@@ -165,19 +155,13 @@ class POAnalyser(object):
             return 0, 1
 
         entry_count, problem_count = self.count_problems(po,
-                                                         functools.partial(self.logv,
-                                                                           'In ',
-                                                                           path,
-                                                                           ': '))
+            functools.partial(self.logv, 'In ', path, ': '))
         po_quality = ((1 - 1.0 * problem_count / entry_count) * 100)
 
         try:
             compare_po = polib.pofile(compare_path)
             entry_count2, problem_count2 = self.count_problems(compare_po,
-                                                               functools.partial(self.logv,
-                                                                                 'In ',
-                                                                                 compare_path,
-                                                                                 ': '))
+                functools.partial(self.logv, 'In ', compare_path, ': '))
             po_quality2 = ((1 - 1.0 * problem_count2 / entry_count2) * 100)
         except:
             compare_po = None
@@ -200,7 +184,8 @@ class POAnalyser(object):
             elif quality_diff < 0.01:
                 self.log(' ; ', compare_path, ' has the same level of quality')
             else:
-                self.log(' ; ', compare_path, ' is ', '%.2f%% better' % quality_diff)
+                self.log(' ; ', compare_path, ' is ', '%.2f%% better'
+                         '' % quality_diff)
         else:
             self.log()
 
@@ -217,14 +202,77 @@ class POAnalyser(object):
             complete_path = self.build_path(base_dir, file_path, entry)
             entry_is_dir = os.path.isdir(complete_path)
             if self.recursive and entry_is_dir:
-                entry_count, problem_count = self.analyse_dir(base_dir, entry_path, compare_with)
+                entry_count, problem_count = self.analyse_dir(base_dir,
+                    entry_path, compare_with)
                 entries += entry_count
                 problems += problem_count
             elif entry.endswith('.po'):
-                entry_count, problem_count = self.analyse_pofile(base_dir, entry_path, compare_with)
+                entry_count, problem_count = self.analyse_pofile(base_dir,
+                    entry_path, compare_with)
                 entries += entry_count
                 problems += problem_count
         return entries, problems
+
+
+    def merge_dicts(self, source, target):
+        """ Returns (target_dict, add_count, change_count, remove_count). """
+
+        source_keys = set(source.keys())
+        target_keys = set(target.keys())
+
+        # added
+        new = source_keys - target_keys
+        for key in new:
+            target[key] = source[key]
+
+        # removed
+        removed = target_keys - source_keys
+
+        # changed
+        common = target_keys.intersection(source_keys)
+
+        diff = set()
+        better = 0
+        for key in common:
+            if not self.ignore_fuzzy:
+                fuzzy_source = 'fuzzy' in source[key].flags or \
+                               source[key].obsolete
+                fuzzy_target = 'fuzzy' in target[key].flags or \
+                               target[key].obsolete
+            else:
+                fuzzy_source = fuzzy_target = False
+
+            # sources that are not fuzzy/obsolete and which are of better
+            # quality than the existing target keys (empty or fuzzy/obsolete)
+            # are taken as non-conflicting but summed as changed
+            better_singular = source[key].msgstr and \
+                (not target[key].msgstr or fuzzy_target)
+            better_plural = source[key].msgstr_plural and \
+                (not target[key].msgstr_plural or fuzzy_target)
+            if not fuzzy_source and (better_singular or better_plural):
+                target[key] = source[key]
+                better += 1
+            elif target[key].msgstr != source[key].msgstr or \
+                target[key].msgstr_plural != source[key].msgstr_plural:
+                diff.add(key)
+
+        if len(diff) > 0:
+            if self.merge_conflict:
+                target = None
+            elif self.merge_overwrite:
+                for key in diff:
+                    te = target[key]
+                    se = source[key]
+                    te.msgstr = se.msgstr
+                    te.msgid_plural = se.msgid_plural
+                    te.msgstr_plural = se.msgstr_plural
+                    te.flags = se.flags
+            elif self.merge_skip:
+                pass # nothing has to be done
+            else:
+                self.log("We have a bug.")
+
+        return (target, len(new), len(diff) + better, len(removed))
 
 
     def merge_pofile(self, base_dir, file_path, merge_with):
@@ -241,7 +289,8 @@ class POAnalyser(object):
         self.logv('Merging ', path, '... ', newline='')
         source, _ = self.collect_entries(path)
         target, target_po = self.collect_entries(merge_path)
-        new_target, add_count, change_count, remove_count = self.merge_dicts(source, target)
+        mdresult = self.merge_dicts(source, target)
+        new_target, add_count, change_count, remove_count = mdresult
         self.logv('done.')
 
         # The Summary
@@ -249,16 +298,27 @@ class POAnalyser(object):
             self.log('CONFLICT; ', newline='')
         else:
             target = new_target
-            while len(target_po) > 0:
-                del target_po[0]
-
-            for e in target.itervalues():
-                target_po.append(e)
-
+            if self.merge_remove:
+                while len(target_po) > 0:
+                    del target_po[0]
+                for e in target.itervalues():
+                    target_po.append(e)
+            else:
+                for e in target.itervalues():
+                    existing = target_po.find(e.msgid)
+                    if existing:
+                        idx = target_po.index(existing)
+                        del target_po[idx]
+                        target_po.insert(idx, e)
+                    else:
+                        target_po.append(e)
             if not self.test_only:
                 target_po.save(merge_path)
 
-        self.log(len(target), ' total items. ', add_count, ' new items, ', change_count, ' changed items, ', remove_count, ' removed items: ', file_path, ' -> ', merge_path)
+        removed_untouched = ' removed ' if self.merge_remove else ' untouched '
+        self.log(len(target), ' total items. ', add_count, ' new items, ',
+            change_count, ' changed items, ', remove_count, removed_untouched,
+            'items: ', file_path, ' -> ', merge_path)
 
         return add_count, change_count, remove_count
 
@@ -273,11 +333,13 @@ class POAnalyser(object):
             entry_path = self.build_path(file_path, entry)
             complete_path = self.build_path(base_dir, file_path, entry)
             entry_is_dir = os.path.isdir(complete_path)
-            add_count, change_count, remove_count  = self.merge_dir(base_dir, entry_path, merge_with) \
-                                                     if self.recursive and entry_is_dir else \
-                                                     self.merge_pofile(base_dir, entry_path, merge_with) \
-                                                     if entry.endswith('.po') else \
-                                                     (0, 0, 0)
+            if self.recursive and entry_is_dir:
+                mresult = self.merge_dir(base_dir, entry_path, merge_with)
+            elif entry.endswith('.po'):
+                mresult = self.merge_pofile(base_dir, entry_path, merge_with)
+            else:
+                mresult = (0, 0, 0)
+            add_count, change_count, remove_count  = mresult
             added += add_count
             changed += change_count
             removed += remove_count
@@ -288,11 +350,13 @@ class POAnalyser(object):
         target = None
 
         if self.merge and self.compare:
-            print >>sys.stderr, "Merge and compare cannot be run together. Use either -m or -c."
+            print("Merge and compare cannot be run together.",
+                  "Use either -m or -c.", file=sys.stderr)
             sys.exit(-1)
         elif self.merge or self.compare:
             if len(sources) < 2:
-                print >>sys.stderr, "Wrong number of arguments. Try -h for help."
+                print("Wrong number of arguments.",
+                      "Try -h for help.", file=sys.stderr)
                 sys.exit(-1)
             else:
                 target = sources[-1]
@@ -303,64 +367,86 @@ class POAnalyser(object):
             changed = 0
             removed = 0
             for s in sources:
-                add_count, change_count, remove_count = self.merge_dir(s, '', merge_with=target) \
-                                                        if os.path.isdir(s) else \
-                                                        self.merge_pofile('', s, merge_with=target)
+                if os.path.isdir(s):
+                    mresult = self.merge_dir(s, '', merge_with=target)
+                else:
+                    mresult = self.merge_pofile('', s, merge_with=target)
+                add_count, change_count, remove_count = mresult
                 added += add_count
                 changed += change_count
                 removed += remove_count
             self.log('---')
-            #self.log('%.2f%% complete; ' % ((1 - 1.0 * problems / entries) * 100), newline='')
-            #self.log(problems, ' problems detected.')
         else:
             entries = 0
             problems = 0
             for s in sources:
-                entry_count, problem_count = self.analyse_dir(s, '', compare_with=target) \
-                                                if os.path.isdir(s) else \
-                                                self.analyse_pofile('', s, compare_with=target)
+                if os.path.isdir(s):
+                    aresult = self.analyse_dir(s, '', compare_with=target)
+                else:
+                    aresult = self.analyse_pofile('', s, compare_with=target)
+                entry_count, problem_count = aresult
                 entries += entry_count
                 problems += problem_count
             if problems > 0 and entries > 0:
                 self.log('---')
-                self.log('%.2f%% complete; ' % ((1 - 1.0 * problems / entries) * 100), newline='')
+                percentage = ((1 - 1.0 * problems / entries) * 100)
+                self.log('%.2f%% complete; ' % percentage, newline='')
                 self.log(problems, ' problems detected.')
 
 
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser(prog='potool')
-    parser.add_argument('file_or_directory', nargs='+', help='path to a .po file or a directory with .po files')
+    parser.add_argument('file_or_directory', nargs='+',
+                        help='path to a .po file or a directory with .po '
+                             'files')
     parser.add_argument('-r', '--recursive', action='store_true',
-                        help='if file_or_directory is a directory, potool will recurse to find .po '
-                        'files also in subdirectories')
+                        help='if file_or_directory is a directory, potool will'
+                             ' recurse to find .po files also in '
+                             'subdirectories')
     parser.add_argument('-v', '--verbose', action='store_true',
-                        help='potool will spit more useful information on standard output')
+                        help='potool will spit more useful information on '
+                             'standard output')
     parser.add_argument('-q', '--quiet', action='store_true',
-                        help='potool will not write anything to standard output (useful for batching)')
+                        help='potool will not write anything to standard '
+                             'output (useful for batching)')
     parser.add_argument('-d', '--ignore-duplicates', action='store_true',
-                        help='potool will not count strings where msgid{_plural} equals msgstr{_plural} as problems')
+                        help='potool will not count strings where '
+                             'msgid{_plural} equals msgstr{_plural} as '
+                             'problems')
     parser.add_argument('-o', '--ignore-occurrences', action='store_true',
-                        help='potool will not count strings with no marked occurrences as problems')
+                        help='potool will not count strings with no marked '
+                             'occurrences as problems')
     parser.add_argument('-f', '--ignore-fuzzy', action='store_true',
-                        help='potool will not count fuzzy and obsolete translations as problems')
+                        help='potool will not count fuzzy and obsolete '
+                             'translations as problems')
     parser.add_argument('-c', '--compare', action='store_true',
-                        help='potool will compare the given files or directories. When using -c, there should be '
-                        'at least 2 file_or_directory arguments passed. Every entry is compared with the last '
-                        'one specified.')
+                        help='potool will compare the given files or '
+                             'directories. When using -c, there should be at '
+                             'least 2 file_or_directory arguments passed. '
+                             'Every entry is compared with the last one '
+                             'specified.')
     parser.add_argument('-m', '--merge', action='store_true',
-                        help='potool will merge the given files or directories. When using -m, there should be '
-                        'at least 2 file_or_directory arguments passed. Every entry is merged with the last '
+                        help='potool will merge the given files or '
+                             'directories. When using -m, there should be at '
+                             'least 2 file_or_directory arguments passed. '
+                             'Every entry is merged with the last '
                         'one specified. Overrides .')
     parser.add_argument('-S', '--skip-conflicts', action='store_true',
-                        help='when using --merge, potool will skip the entries that are both in source and target '
-                        'but differ in content.')
+                        help='when using --merge, potool will skip the entries'
+                             ' that are both in source and target but differ '
+                             'in content.')
     parser.add_argument('-X', '--overwrite-conflicts', action='store_true',
-                        help='when using --merge, potool will overwrite the entries in target that appear both in '
-                        'source and target but differ in content.')
+                        help='when using --merge, potool will overwrite the '
+                             'entries in target that appear both in source and'
+                             ' target but differ in content.')
+    parser.add_argument('-R', '--remove-missing', action='store_true',
+                        help='when using --merge, potool will remove the '
+                             'entries in target that do not appear in '
+                             'sources.')
     parser.add_argument('-T', '--test-only', action='store_true',
-                        help='when using --merge, potool will not write changes to the target but only print the '
-                        'changes it would do.')
+                        help='when using --merge, potool will not write '
+                             'changes to the target but only print the changes'
+                             ' it would do.')
     values = parser.parse_args()
-
     POAnalyser(config=values).start(values.file_or_directory)
