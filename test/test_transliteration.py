@@ -7,7 +7,7 @@ $ py.test
 """
 import codecs
 
-from langacore.kit.i18n import translit
+from lck.i18n import translit
 
 
 def test_transliteration_from_file():

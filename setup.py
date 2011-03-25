@@ -1,18 +1,23 @@
 # -*- encoding: utf-8 -*-
-# Copyright (C) 2010 LangaCore
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, version 3 of the License.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# Copyright (C) 2011 by Łukasz Langa
+# 
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
 
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+# THE SOFTWARE.
 
 import os
 import sys
@@ -21,10 +26,10 @@ from setuptools import setup, find_packages
 assert sys.version_info >= (2, 7), "Python 2.7+ required."
 
 setup (
-    name = 'langacore.kit.i18n',
-    version = '0.1.6',
-    author = 'LangaCore, Lukasz Langa, Krzysztof Borowczyk',
-    author_email = 'support@langacore.org, lukasz@langa.pl, krzysztof@bordev.pl',
+    name = 'lck.i18n',
+    version = '0.3.0',
+    author = 'Lukasz Langa, Krzysztof Borowczyk',
+    author_email = 'lukasz@langa.pl, krzysztof@bordev.pl',
     description = "Various common i18n-related routines.",
     long_description = '',
     keywords = '',
@@ -33,19 +38,19 @@ setup (
     packages = find_packages('src'),
     include_package_data = True,
     package_dir = {'':'src'},
-    namespace_packages = ['langacore', 'langacore.kit'],
+    namespace_packages = ['lck'],
     zip_safe = True,
     install_requires = [
         'setuptools',
         'polib',
         'Sphinx',
-        'langacore.kit.common',
+        'lck.common>=0.4.0',
         ],
 
     classifiers = [
-        'Development Status :: 3 - Alpha',
+        'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
-        'License :: OSI Approved :: GNU General Public License (GPL)',
+        'License :: OSI Approved :: MIT License',
         'Natural Language :: English',
         'Programming Language :: Python',
         'Programming Language :: Python :: 2.7',

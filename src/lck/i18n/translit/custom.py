@@ -100,26 +100,26 @@ l2c.update({
     u'Io': u'\u0451',
     u'JA': u'\u042F',
     u'Ja': u'\u042F',
-    u'JE': u'\u042D', #415? 
-    u'Je': u'\u042D', #415? 
+    u'JE': u'\u042D', #415?
+    u'Je': u'\u042D', #415?
     u'JO': u'\u0401', # XXX: sure?
     u'Jo': u'\u0401', # XXX: sure?
     u'JU': u'\u042E',
     u'Ju': u'\u042E',
     u'KH': l2c[u'H'],
     u'Kh': l2c[u'H'],
-    u'L`a': l2c[u'L'] + l2c[u'a'],  
-    u'L`e': l2c[u'L'] + l2c[u'e'],  
-    u'L`i': l2c[u'L'] + l2c[u'i'],  
-    u'L`o': l2c[u'L'] + l2c[u'o'],  
-    u'L`u': l2c[u'L'] + l2c[u'u'],  
-    u'L`y': l2c[u'L'] + l2c[u'y'],  
-    u'L\'a': l2c[u'L'] + l2c[u'a'],  
-    u'L\'e': l2c[u'L'] + l2c[u'e'],  
-    u'L\'i': l2c[u'L'] + l2c[u'i'],  
-    u'L\'o': l2c[u'L'] + l2c[u'o'],  
-    u'L\'u': l2c[u'L'] + l2c[u'u'],  
-    u'L\'y': l2c[u'L'] + l2c[u'y'],  
+    u'L`a': l2c[u'L'] + l2c[u'a'],
+    u'L`e': l2c[u'L'] + l2c[u'e'],
+    u'L`i': l2c[u'L'] + l2c[u'i'],
+    u'L`o': l2c[u'L'] + l2c[u'o'],
+    u'L`u': l2c[u'L'] + l2c[u'u'],
+    u'L`y': l2c[u'L'] + l2c[u'y'],
+    u'L\'a': l2c[u'L'] + l2c[u'a'],
+    u'L\'e': l2c[u'L'] + l2c[u'e'],
+    u'L\'i': l2c[u'L'] + l2c[u'i'],
+    u'L\'o': l2c[u'L'] + l2c[u'o'],
+    u'L\'u': l2c[u'L'] + l2c[u'u'],
+    u'L\'y': l2c[u'L'] + l2c[u'y'],
     u'La': l2c[u'L'] + l2c[u'a'],
     u'Le': l2c[u'L'] + l2c[u'e'],
     u'Li': l2c[u'L'] + l2c[u'i'],
@@ -160,24 +160,24 @@ l2c.update({
     u'jo': u'\u0451',
     u'ju': u'\u044E',
     u'kh': l2c[u'h'],
-    u'l`a': l2c[u'l'] + l2c[u'a'], 
-    u'l`e': l2c[u'l'] + l2c[u'e'], 
-    u'l`i': l2c[u'l'] + l2c[u'i'], 
-    u'l`o': l2c[u'l'] + l2c[u'o'], 
-    u'l`u': l2c[u'l'] + l2c[u'u'], 
-    u'l`y': l2c[u'l'] + l2c[u'y'], 
-    u'l\'a': l2c[u'l'] + l2c[u'a'], 
-    u'l\'e': l2c[u'l'] + l2c[u'e'], 
-    u'l\'i': l2c[u'l'] + l2c[u'i'], 
-    u'l\'o': l2c[u'l'] + l2c[u'o'], 
-    u'l\'u': l2c[u'l'] + l2c[u'u'], 
-    u'l\'y': l2c[u'l'] + l2c[u'y'], 
-    u'la': l2c[u'l'] + l2c[u'a'], 
+    u'l`a': l2c[u'l'] + l2c[u'a'],
+    u'l`e': l2c[u'l'] + l2c[u'e'],
+    u'l`i': l2c[u'l'] + l2c[u'i'],
+    u'l`o': l2c[u'l'] + l2c[u'o'],
+    u'l`u': l2c[u'l'] + l2c[u'u'],
+    u'l`y': l2c[u'l'] + l2c[u'y'],
+    u'l\'a': l2c[u'l'] + l2c[u'a'],
+    u'l\'e': l2c[u'l'] + l2c[u'e'],
+    u'l\'i': l2c[u'l'] + l2c[u'i'],
+    u'l\'o': l2c[u'l'] + l2c[u'o'],
+    u'l\'u': l2c[u'l'] + l2c[u'u'],
+    u'l\'y': l2c[u'l'] + l2c[u'y'],
+    u'la': l2c[u'l'] + l2c[u'a'],
     u'le': l2c[u'l'] + l2c[u'e'],
-    u'lo': l2c[u'l'] + l2c[u'o'], 
-    u'li': l2c[u'l'] + l2c[u'i'], 
+    u'lo': l2c[u'l'] + l2c[u'o'],
+    u'li': l2c[u'l'] + l2c[u'i'],
     u'lu': l2c[u'l'] + u'\u044E',
-    u'ly': l2c[u'l'] + l2c[u'y'], 
+    u'ly': l2c[u'l'] + l2c[u'y'],
     u'rz': u'\u0436',
     u'sh': u'\u0448',
     u'shh': u'\u0449',
@@ -189,7 +189,7 @@ l2c.update({
     u'yo': u'\u0451',
     u'yu': u'\u044E',
     u'yy': l2c[u'y'] + l2c[u'j'],
-    u'zh': u'\u0436', 
+    u'zh': u'\u0436',
     u'##': u'\u042A',
 })
 
@@ -197,17 +197,17 @@ cyrillic_countries = set(['ba', 'bg', 'by', 'mk', 'rs', 'ru', 'ua'])
 c_convert_countries = set(['au', 'ca', 'en', 'gb', 'us', 'uk'])
 
 cyrillic_updates = {
-    u'CH': u'\u0427', 
-    u'Ch': u'\u0427', 
-    u'ch': u'\u0447', 
+    u'CH': u'\u0427',
+    u'Ch': u'\u0427',
+    u'ch': u'\u0447',
     u'aya': l2c[u'a'] + u'\u0447',
-    u'ay': l2c[u'a'] + l2c[u'j'], #at the end 
+    u'ay': l2c[u'a'] + l2c[u'j'], #at the end
     u'ia': l2c[u'i'] + u'\u044F',
     u'lu': l2c[u'l'] + l2c[u'u'],
 }
 
 
-from langacore.kit.cache import memoize
+from lck.cache import memoize
 
 @memoize(update_interval=0, fast_updates=True)
 def get_transforms(input_lang=''):
@@ -215,10 +215,10 @@ def get_transforms(input_lang=''):
 
     if input_lang in cyrillic_countries:
         trans_dict.update(cyrillic_updates)
-    
+
     if input_lang in c_convert_countries:
         trans_dict.update({u'c': l2c[u'k'], u'C': l2c[u'K']})
-    
+
     trans_order = list(l2c.keys())
     trans_order.sort(lambda x, y: len(y) - len(x) or cmp(x, y))
 
@@ -234,7 +234,7 @@ def any(lang, input, force=False, input_lang=''):
 
     trans = get_transforms(input_lang)
     result = input
-    
+
     for t_from, t_to in trans:
         if t_from in result:
             result = result.replace(t_from, t_to)
