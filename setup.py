@@ -34,7 +34,7 @@ setup (
     long_description = '',
     keywords = '',
     platforms = ['any'],
-    license = 'GPL v3',
+    license = 'MIT',
     packages = find_packages('src'),
     include_package_data = True,
     package_dir = {'':'src'},
